@@ -1,0 +1,9 @@
+app:
+  name: AI Assistant
+  version: 0.1.0
+logging:
+  level: INFO
+server:
+  host: 127.0.0.1
+  port: 8000
+ENABLE_CONTINUOUS_LISTENING: False  # Set to False to disable continuous listening by default

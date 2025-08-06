@@ -1,0 +1,254 @@
+# -----------------
+# OS-specific files
+# -----------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+desktop.ini
+$RECYCLE.BIN/
+
+# -----------------
+# IDEs and Editors
+# -----------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+*.tmp
+*.log
+
+# JetBrains
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code settings
+.vscode/
+
+# --------------
+# Node.js
+# --------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# --------------
+# Python
+# --------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.venv
+env/
+venv/
+
+# --------------
+# Java
+# --------------
+*.class
+*.jar
+*.war
+*.ear
+*.log
+*.javadoc
+target/
+build/
+
+# --------------
+# C/C++
+# --------------
+*.out
+*.obj
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.dSYM/
+*.log
+
+# Qt / wxWidgets
+*.user
+*.pro.user
+*.qmake.stash
+Makefile*
+moc_*.cpp
+ui_*.h
+
+# --------------
+# C#
+# --------------
+*.exe
+*.dll
+*.pdb
+*.mdb
+*.cache
+*.config
+*.csproj.user
+*.suo
+*.user
+*.vspscc
+*.vssscc
+bin/
+obj/
+
+# --------------
+# Rust
+# --------------
+target/
+Cargo.lock
+
+# --------------
+# Go
+# --------------
+*.exe
+*.test
+*.out
+vendor/
+go.sum
+
+# --------------
+# JavaScript/TypeScript
+# --------------
+*.tsbuildinfo
+.cache/
+.eslintcache
+
+# --------------
+# Logs and Debugging
+# --------------
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# --------------
+# Environment Files
+# --------------
+.env*
+.envrc
+*.secret
+
+# --------------
+# Backup Files
+# --------------
+*~
+*.bak
+*.tmp
+*.old
+*.orig
+*.save
+
+# --------------
+# Dependency directories
+# --------------
+bower_components/
+jspm_packages/
+__pypackages__/
+
+# --------------
+# Compiled source
+# --------------
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# --------------
+# Miscellaneous
+# --------------
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.swp
+
+# --------------
+# MacOS
+# --------------
+.AppleDouble
+.LSOverride
+.Trashes
+
+# --------------
+# Linux
+# --------------
+*~ 
+.nfs*
+
+# --------------
+# Windows
+# --------------
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --------------
+# Coverage Reports
+# --------------
+coverage/
+*.lcov
+*.gcov
+.nyc_output/
+
+# --------------
+# Jupyter Notebook
+# --------------
+.ipynb_checkpoints
+
+# --------------
+# Database
+# --------------
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sql
+*.log
+*.rdb
+
+# --------------
+# React / Next.js
+# --------------
+.next/
+out/
+.vercel/
+
+# --------------
+# Build Output
+# --------------
+build/
+dist/
+
+# --------------
+# Docker
+# --------------
+*.tar
+docker-compose.override.yml
+
+# --------------
+# Test output
+# --------------
+test-output/
