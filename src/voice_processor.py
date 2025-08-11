@@ -1,114 +1,120 @@
 import logging
 import speech_recognition as sr
-import queue
-import threading
-import time
-import pyaudio
 import io
 from scipy.io import wavfile
+import threading
+import queue
+import os
+import requests
+from src.settings import settings
 
 logger = logging.getLogger(__name__)
 
 class VoiceProcessor:
-    def __init__(self, enable_continuous_listening=True):
+    def __init__(self):
         """Initialize voice processor with speech recognizer."""
         self.recognizer = sr.Recognizer()
+        self.microphone = sr.Microphone()
         self.command_queue = queue.Queue()
         self.running = True
-        self.audio_format = pyaudio.paInt16
-        self.channels = 1
-        self.rate = 44100
-        self.chunk = 1024
-        self.pyaudio = pyaudio.PyAudio()
-        self.lock = threading.Lock()  # Ensure exclusive microphone access
-        self.enable_continuous_listening = enable_continuous_listening
-        if self.enable_continuous_listening:
-            self.thread = threading.Thread(target=self._continuous_listen, daemon=True)
-            self.thread.start()
+        with self.microphone as source:
+            self.recognizer.adjust_for_ambient_noise(source)
+        self.thread = threading.Thread(target=self._continuous_listen, daemon=True)
+        self.thread.start()
 
     def _continuous_listen(self):
         """Continuously listen for voice commands with hotword detection."""
         while self.running:
-            with self.lock:
-                try:
-                    stream = self.pyaudio.open(
-                        format=self.audio_format,
-                        channels=self.channels,
-                        rate=self.rate,
-                        input=True,
-                        frames_per_buffer=self.chunk
-                    )
+            try:
+                with self.microphone as source:
                     logger.info("Listening for voice input...")
-                    frames = []
-                    silence_count = 0
-                    max_silence = 5  # Seconds of silence before stopping
-                    while self.running:
-                        data = stream.read(self.chunk, exception_on_overflow=False)
-                        frames.append(data)
-                        audio_data = sr.AudioData(b''.join(frames[-int(self.rate/self.chunk*5):]), self.rate, 2)
-                        try:
-                            text = self.recognizer.recognize_google(audio_data, show_all=False)
-                            if text and "hey assistant" in text.lower():
-                                command = text.lower().replace("hey assistant", "").strip()
-                                self.command_queue.put(command)
-                                logger.info(f"Queued command: {command}")
-                                frames = []  # Reset after command
-                            silence_count = 0
-                        except (sr.UnknownValueError, sr.RequestError):
-                            silence_count += self.chunk / self.rate
-                            if silence_count > max_silence:
-                                break
-                        time.sleep(self.chunk / self.rate)
-                    stream.stop_stream()
-                    stream.close()
-                except Exception as e:
-                    logger.error(f"Error in continuous listening: {e}")
-                    time.sleep(1)
+                    audio = self.recognizer.listen(source, timeout=5, phrase_time_limit=5)
+                text = self.use_voice_api(audio)
+                if text and "hey assistant" in text.lower():
+                    command = text.lower().replace("hey assistant", "").strip()
+                    self.command_queue.put(command)
+                    logger.info(f"Queued command: {command}")
+            except (sr.WaitTimeoutError, sr.UnknownValueError, sr.RequestError):
+                continue
+            except Exception as e:
+                logger.error(f"Error in continuous listening: {e}")
+
+    def use_voice_api(self, audio):
+        """Use Spline, Telnyx, Astica for voice transcription."""
+        try:
+            # Spline API (placeholder)
+            response = requests.post(
+                "https://api.spline.design/v1/voice",  # Replace with actual Spline endpoint
+                data=audio.get_wav_data(),
+                headers={"Authorization": f"Bearer {settings.spline_api_key}"}
+            )
+            text = response.json().get("text")
+            if text:
+                return text
+
+            # Telnyx API (placeholder)
+            response = requests.post(
+                "https://api.telnyx.com/v2/voice",  # Replace with actual Telnyx endpoint
+                data=audio.get_wav_data(),
+                headers={"Authorization": f"Bearer {settings.telnyx_api_key}"}
+            )
+            text = response.json().get("text")
+            if text:
+                return text
+
+            # Astica API (placeholder)
+            response = requests.post(
+                "https://api.astica.ai/v1/voice",  # Replace with actual Astica endpoint
+                data=audio.get_wav_data(),
+                headers={"Authorization": f"Bearer {settings.astica_api_key}"}
+            )
+            text = response.json().get("text")
+            if text:
+                return text
+            return self.recognizer.recognize_google(audio)  # Fallback
+        except Exception as e:
+            logger.error(f"Error using voice API: {e}")
+            return None
 
     def capture_voice(self, timeout=5, phrase_time_limit=5):
-        """Capture single voice input for testing or GUI."""
-        with self.lock:
-            try:
-                stream = self.pyaudio.open(
-                    format=self.audio_format,
-                    channels=self.channels,
-                    rate=self.rate,
-                    input=True,
-                    frames_per_buffer=self.chunk
-                )
+        """Capture single voice input for testing."""
+        try:
+            with self.microphone as source:
                 logger.info("Listening for voice input...")
-                frames = []
-                start_time = time.time()
-                while time.time() - start_time < timeout:
-                    data = stream.read(self.chunk, exception_on_overflow=False)
-                    frames.append(data)
-                    if len(frames) * self.chunk / self.rate >= phrase_time_limit:
-                        break
-                stream.stop_stream()
-                stream.close()
-                audio_data = sr.AudioData(b''.join(frames), self.rate, 2)
-                text = self.recognizer.recognize_google(audio_data)
-                logger.info(f"Transcribed voice input: {text}")
-                return text
-            except sr.UnknownValueError:
-                logger.error("Could not understand voice input")
-                return None
-            except sr.RequestError as e:
-                logger.error(f"Speech recognition error: {e}")
-                return None
-            except Exception as e:
-                logger.error(f"Unexpected error during voice capture: {e}")
-                return None
+                audio = self.recognizer.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
+            text = self.use_voice_api(audio)
+            logger.info(f"Transcribed voice input: {text}")
+            return text
+        except sr.WaitTimeoutError:
+            logger.warning("No voice input detected within timeout")
+            return None
+        except sr.UnknownValueError:
+            logger.error("Could not understand voice input")
+            return None
+        except sr.RequestError as e:
+            logger.error(f"Speech recognition error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error during voice capture: {e}")
+            return None
 
     def process_audio(self, audio_data: bytes):
         """Process audio data from file and convert to text."""
         try:
-            temp_file = io.BytesIO(audio_data)
-            temp_file.seek(0)
-            sample_rate, data = wavfile.read(temp_file)
-            if len(data.shape) > 1:
-                data = data[:, 0]
-            audio = sr.AudioData(data.tobytes(), sample_rate, 2)
+            temp_file = "temp_audio.wav"
+            with open(temp_file, "wb") as f:
+                f.write(audio_data)
+            try:
+                sample_rate, data = wavfile.read(temp_file)
+                if len(data.shape) > 1:
+                    data = data[:, 0]
+            except Exception as e:
+                logger.error(f"Invalid WAV file: {e}")
+                return None
+            finally:
+                if os.path.exists(temp_file):
+                    os.remove(temp_file)
+            audio = sr.AudioData(data.tobytes(), sample_rate, sample_width=2)
             text = self.recognizer.recognize_google(audio)
             logger.info(f"Transcribed audio file: {text}")
             return text
@@ -150,4 +156,3 @@ class VoiceProcessor:
     def stop(self):
         """Stop continuous listening."""
         self.running = False
-        self.pyaudio.terminate()

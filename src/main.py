@@ -14,6 +14,8 @@ from src.llm_manager import LLMManager
 from src.voice_processor import VoiceProcessor
 from src.text_search import TextSearch
 from src.settings import settings
+from src.pipelines.pipelines import CommandPipeline
+from src.agents import AgenticAI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -37,11 +39,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize core components with optional hardware features
+# Initialize core components
 context_manager = ContextManager()
 llm_manager = LLMManager()
 voice_processor = VoiceProcessor(enable_continuous_listening=config.get("ENABLE_CONTINUOUS_LISTENING", False))
 text_search = TextSearch()
+pipeline = CommandPipeline()
+agentic_ai = AgenticAI()
 
 # Load platform-specific automation
 if platform.system() == "Windows":
@@ -74,7 +78,7 @@ async def process_command(request: CommandRequest):
     try:
         command = request.command
         logger.info(f"Processing text command: {command}")
-        return await process_command_logic(command)
+        return await pipeline.process(command)
     except Exception as e:
         logger.error(f"Error processing text command: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -91,9 +95,25 @@ async def process_voice(file: UploadFile = File(...)):
         if not command:
             raise HTTPException(status_code=400, detail="Could not transcribe audio")
         logger.info(f"Processing voice command: {command}")
-        return await process_command_logic(command)
+        return await pipeline.process(command)
     except Exception as e:
         logger.error(f"Error processing voice command: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Image upload endpoint
+@app.post("/upload_image")
+async def upload_image(file: UploadFile = File(...)):
+    """Process image upload."""
+    try:
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Invalid file type; must be image")
+        image_data = await file.read()
+        command = "analyze this image"
+        context = {"image_data": image_data}
+        logger.info("Processing image upload")
+        return await pipeline.process(command, context=context)
+    except Exception as e:
+        logger.error(f"Error processing image upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # WebSocket endpoint for continuous text chatting
@@ -104,7 +124,7 @@ async def websocket_chat(websocket: WebSocket):
     try:
         while True:
             command = await websocket.receive_text()
-            result = await process_command_logic(command)
+            result = await pipeline.process(command)
             await websocket.send_json({"result": result})
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
@@ -169,14 +189,6 @@ async def get_voice_commands():
     if command:
         return await process_command_logic(command)
     return {"result": "No voice command available"}
-
-# Cleanup on shutdown
-@app.on_event("shutdown")
-def shutdown_event():
-    """Stop threads and cleanup resources."""
-    logger.info("Shutting down resources")
-    context_manager.stop()
-    voice_processor.stop()
 
 # Run the app locally
 if __name__ == "__main__":

@@ -11,8 +11,8 @@ class TestContextManager(unittest.TestCase):
     def test_get_context(self):
         context = self.context_manager.get_context()
         self.assertIsInstance(context, dict)
-        self.assertTrue("active_app" in context or not context)  # Empty dict allowed initially
-        self.assertTrue("screen_content" in context or not context)
+        self.assertIn("active_app", context)
+        self.assertIn("screen_content", context)
 
     def test_stop_monitoring(self):
         self.context_manager.stop()

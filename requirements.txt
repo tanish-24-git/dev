@@ -9,7 +9,7 @@ pytesseract==0.3.10
 Pillow==10.4.0
 pywinauto==0.6.8
 numpy==1.26.4
-opencv-python==4.10.0
+opencv-python==4.10.0.84
 speechrecognition==3.10.0
 PyAudio==0.2.14
 scipy==1.13.1
@@ -20,4 +20,8 @@ youtube-transcript-api==0.6.2
 pdfplumber==0.11.4
 google-auth-oauthlib==1.2.1
 google-api-python-client==2.149.0
-asyncio
+spacy==3.7.2
+selenium==4.23.1
+celery==5.4.0
+langchain==0.2.10
+sentence-transformers==3.0.1

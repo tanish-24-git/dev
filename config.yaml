@@ -6,4 +6,6 @@ logging:
 server:
   host: 127.0.0.1
   port: 8000
-ENABLE_CONTINUOUS_LISTENING: False  # Set to False to disable continuous listening by default
+ENABLE_CONTINUOUS_LISTENING: False
+ENABLE_SCREEN_MONITORING: False
+ENABLE_VOICE_APIS: True

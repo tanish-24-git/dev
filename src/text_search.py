@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from youtube_transcript_api import YouTubeTranscriptApi
 import pdfplumber
+import re
 import io
 
 logger = logging.getLogger(__name__)
@@ -49,13 +50,9 @@ class TextSearch:
     def get_youtube_transcript(self, screen_content: str):
         """Fetch YouTube video transcript."""
         try:
-            # Extract video ID from URL
-            video_id = None
-            for url in screen_content.split():
-                if "youtube.com/watch?v=" in url:
-                    video_id = url.split("v=")[1].split("&")[0]
-                    break
-            if video_id:
+            url_match = re.search(r'(https?://www\.youtube\.com/watch\?v=[^\s&]+)', screen_content)
+            if url_match:
+                video_id = url_match.group(1).split("v=")[1]
                 transcript = YouTubeTranscriptApi.get_transcript(video_id)
                 return " ".join([entry["text"] for entry in transcript])
             return None
@@ -66,13 +63,9 @@ class TextSearch:
     def extract_pdf_text(self, screen_content: str):
         """Extract text from a PDF URL."""
         try:
-            # Find PDF URL in screen content
-            pdf_url = None
-            for url in screen_content.split():
-                if url.endswith(".pdf"):
-                    pdf_url = url
-                    break
-            if pdf_url:
+            url_match = re.search(r'(https?://[^\s]+\.pdf)', screen_content)
+            if url_match:
+                pdf_url = url_match.group(1)
                 response = requests.get(pdf_url, timeout=10)
                 response.raise_for_status()
                 with pdfplumber.open(io.BytesIO(response.content)) as pdf:

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class WindowsAutomation:
     def __init__(self):
-        """Initialize Windows hypnosis module."""
+        """Initialize Windows automation module."""
         self.command_map = {
             "open chrome": "start chrome",
             "open notepad": "notepad",
@@ -31,6 +31,11 @@ class WindowsAutomation:
                 subprocess.run(f"start {command_lower[5:]}", shell=True)
                 return f"Opened: {command_lower[5:]}"
             else:
+                # General app launch
+                if command_lower.startswith("open "):
+                    app = command_lower[5:]
+                    subprocess.run(f"start {app}", shell=True)
+                    return f"Opened: {app}"
                 logger.warning(f"Unknown command: {command}")
                 return f"Command not recognized: {command}"
         except Exception as e:

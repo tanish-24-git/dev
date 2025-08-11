@@ -12,6 +12,7 @@ import pywinauto
 import psutil
 import win32gui
 import win32process
+from selenium import webdriver
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class ContextManager:
         self.thread = threading.Thread(target=self._continuous_monitor, daemon=True)
         self.thread.start()
 
+        self.selenium_driver = None
         if platform.system() == "Windows":
             pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
         elif platform.system() in ("Linux", "Darwin"):
@@ -70,31 +72,31 @@ class ContextManager:
             return "OCR failed"
 
     def get_active_app(self):
-        """Get the name of the currently active application."""
+        """Retrieve the currently active application."""
         try:
-            if platform.system() == "Windows":
-                desktop = pywinauto.Desktop(backend="uia")
-                active_window = desktop.window(top_level_only=True, active_only=True)
-                if active_window:
-                    app = pywinauto.Application().connect(process=active_window.process_id)
-                    return app.top_window().window_text() or "Unknown"
-                else:
-                    return self._get_active_app_fallback()
-            return "Unknown"  # Placeholder for non-Windows platforms
+            # Get the active window from the desktop
+            desktop = Desktop(backend="uia")
+            active_window = desktop.window(topmost=True, active=True)
+            
+            # Ensure the window exists and is valid
+            if not active_window.exists():
+                logger.error("No active window found.")
+                return None
+            
+            # Retrieve the process ID directly (not as a method call)
+            pid = active_window.process_id
+            logger.debug(f"Active window process ID: {pid}")
+            
+            # Connect to the application using the process ID
+            app = Application(backend="uia").connect(process=pid)
+            app_name = app.top_window().window_text() or "Unknown Application"
+            logger.info(f"Active application: {app_name}")
+            return app_name
+            
         except Exception as e:
-            logger.error(f"Error getting active app: {e}")
-            return self._get_active_app_fallback()
-
-    def _get_active_app_fallback(self):
-        """Fallback method to get active app using psutil and win32."""
-        try:
-            foreground_window = win32gui.GetForegroundWindow()
-            _, pid = win32process.GetWindowThreadProcessId(foreground_window)
-            process = psutil.Process(pid)
-            return process.name() or "Unknown"
-        except Exception as e:
-            logger.error(f"Fallback error: {e}")
-            return "Unknown"
+            logger.error(f"Error getting active app: {str(e)}")
+            # Fallback: return a default value or attempt another method
+            return "Unknown Application"
 
     def is_screen_changed(self, new_img, old_img, threshold=100):
         """Check if the screen has changed significantly."""
@@ -138,7 +140,7 @@ class ContextManager:
     def get_context(self):
         """Retrieve the latest context."""
         with self.lock:
-            return self.context.copy() if self.context else {}
+            return self.context.copy()
 
     def stop(self):
         """Stop continuous monitoring."""

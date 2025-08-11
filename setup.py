@@ -27,7 +27,11 @@ setup(
         "pdfplumber==0.11.4",
         "google-auth-oauthlib==1.2.1",
         "google-api-python-client==2.149.0",
-        "asyncio"  # Added for timeout handling in LLMManager
+        "spacy==3.7.2",
+        "selenium==4.23.1",
+        "celery==5.4.0",
+        "langchain==0.2.10",
+        "sentence-transformers==3.0.1"
     ],
     author="Your Name",
     author_email="your.email@example.com",
