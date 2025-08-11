@@ -16,9 +16,10 @@ from src.text_search import TextSearch
 from src.settings import settings
 from src.pipelines.pipelines import CommandPipeline
 from src.agents import AgenticAI
+from src.logger_config import setup_logger  # Add import
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+setup_logger()  # Initialize logging configuration
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
@@ -42,9 +43,8 @@ app.add_middleware(
 # Initialize core components
 context_manager = ContextManager()
 llm_manager = LLMManager()
-voice_processor = VoiceProcessor(enable_continuous_listening=config.get("ENABLE_CONTINUOUS_LISTENING", False))
+voice_processor = VoiceProcessor()
 text_search = TextSearch()
-pipeline = CommandPipeline()
 agentic_ai = AgenticAI()
 
 # Load platform-specific automation
@@ -59,6 +59,9 @@ elif platform.system() == "Linux":
     automation = LinuxAutomation()
 else:
     raise NotImplementedError("Unsupported platform")
+
+# Initialize CommandPipeline with automation instance
+pipeline = CommandPipeline(automation=automation)
 
 # Define request model for text commands
 class CommandRequest(BaseModel):
@@ -166,12 +169,18 @@ async def process_command_logic(command: str):
                 elif context.get("is_email"):
                     email_content = context.get("screen_content", "")  # Fallback to screen content
                     context["email_content"] = email_content
-            result = await llm_manager.query(command, context)
+            try:
+                result = await llm_manager.query(command, context)
+            except Exception as e:
+                result = f"LLM query failed: {str(e)}. Context: {context.get('screen_content', 'No screen content available')}"
         elif action_type == "email_reply":
             email_content = context.get("screen_content", "")
             context["email_content"] = email_content
-            reply = await llm_manager.query("Generate a reply to this email", context)
-            result = automation.send_email(to="recipient@example.com", subject="Re: Email", body=reply)
+            try:
+                reply = await llm_manager.query("Generate a reply to this email", context)
+                result = automation.send_email(to="recipient@example.com", subject="Re: Email", body=reply)
+            except Exception as e:
+                result = f"Email reply failed: {str(e)}"
         else:
             result = "Command not recognized"
 

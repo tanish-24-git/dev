@@ -8,11 +8,8 @@ import cv2
 import threading
 import time
 import re
-import pywinauto
-import psutil
-import win32gui
-import win32process
 from selenium import webdriver
+from pywinauto import Desktop, Application  # Add imports
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +78,9 @@ class ContextManager:
             # Ensure the window exists and is valid
             if not active_window.exists():
                 logger.error("No active window found.")
-                return None
+                return "Unknown Application"
             
-            # Retrieve the process ID directly (not as a method call)
+            # Retrieve the process ID directly
             pid = active_window.process_id
             logger.debug(f"Active window process ID: {pid}")
             
@@ -95,8 +92,7 @@ class ContextManager:
             
         except Exception as e:
             logger.error(f"Error getting active app: {str(e)}")
-            # Fallback: return a default value or attempt another method
-            return "Unknown Application"
+            return "Unknown Application"  # Fallback
 
     def is_screen_changed(self, new_img, old_img, threshold=100):
         """Check if the screen has changed significantly."""
@@ -145,3 +141,5 @@ class ContextManager:
     def stop(self):
         """Stop continuous monitoring."""
         self.running = False
+        if self.selenium_driver:
+            self.selenium_driver.quit()

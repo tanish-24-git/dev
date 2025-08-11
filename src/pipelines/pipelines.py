@@ -4,17 +4,16 @@ from langchain.prompts import PromptTemplate
 from src.llm_manager import LLMManager
 from src.context_manager import ContextManager
 from src.text_search import TextSearch
-from src.automation import Automation
 from src.agents import AgenticAI
 
 logger = logging.getLogger(__name__)
 
 class CommandPipeline:
-    def __init__(self):
+    def __init__(self, automation):
         self.llm_manager = LLMManager()
         self.context_manager = ContextManager()
         self.text_search = TextSearch()
-        self.automation = Automation()
+        self.automation = automation  # Use the passed automation instance
         self.agentic_ai = AgenticAI()
 
     async def process(self, command: str, context=None):
@@ -30,17 +29,35 @@ class CommandPipeline:
             return self.agentic_ai.execute_workflow(command)
 
         # General question answering
-        result = await self.llm_manager.query(command, context)
+        action_type = self.classify_command(command)  # Use existing classify_command for now
+        if action_type == "automation":
+            result = self.automation.execute(command)
+        else:
+            result = await self.llm_manager.query(command, context)
 
-        # Post-process with plugins
-        result = self.plugins.post_process(result, command)
+        # Post-process (placeholder for plugins, as none are implemented yet)
+        # result = self.plugins.post_process(result, command)  # Commented out as plugins are undefined
+        return {"command": command, "result": result}
 
-        return result
+    def classify_command(self, command):
+        """Classify command type for routing (temporary fallback to VoiceProcessor logic)."""
+        if not command:
+            return "unknown"
+        command_lower = command.lower()
+        if any(keyword in command_lower for keyword in ["open", "change", "reject", "order", "shut down"]):
+            if "summarize" in command_lower and "http" in command_lower:
+                return "web_summary"
+            return "automation"
+        elif any(keyword in command_lower for keyword in ["read", "summarize", "what"]):
+            return "query"
+        elif "search for" in command_lower:
+            return "search"
+        elif "reply to this" in command_lower:
+            return "email_reply"
+        logger.warning(f"Unrecognized command: {command}")
+        return "unknown"
 
     def classify_command_with_nlp(self, command):
-        """Use Spacy for intent detection."""
-        # Implementation with Spacy
-        # ...
-        return "intent"  # Placeholder
-
-# Custom pipelines for modular processing
+        """Use Spacy for intent detection (placeholder)."""
+        # Implementation with Spacy (not implemented yet, using fallback)
+        return "intent" if "complex" in command.lower() else self.classify_command(command)

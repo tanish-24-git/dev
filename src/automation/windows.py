@@ -30,12 +30,16 @@ class WindowsAutomation:
             elif command_lower.startswith("open http"):
                 subprocess.run(f"start {command_lower[5:]}", shell=True)
                 return f"Opened: {command_lower[5:]}"
+            elif command_lower.startswith("open ") and re.match(r'^open https?://', command_lower):
+                # Handle URLs without needing "open http"
+                url = command_lower[5:]
+                subprocess.run(f"start {url}", shell=True)
+                return f"Opened: {url}"
+            elif command_lower.startswith("open "):
+                app = command_lower[5:]
+                subprocess.run(f"start {app}", shell=True)
+                return f"Opened: {app}"
             else:
-                # General app launch
-                if command_lower.startswith("open "):
-                    app = command_lower[5:]
-                    subprocess.run(f"start {app}", shell=True)
-                    return f"Opened: {app}"
                 logger.warning(f"Unknown command: {command}")
                 return f"Command not recognized: {command}"
         except Exception as e:
