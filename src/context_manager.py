@@ -9,7 +9,8 @@ import threading
 import time
 import re
 from selenium import webdriver
-from pywinauto import Desktop, Application  # Add imports
+from pywinauto import Desktop, Application
+import win32gui  # Add import for Windows API
 
 logger = logging.getLogger(__name__)
 
@@ -71,25 +72,19 @@ class ContextManager:
     def get_active_app(self):
         """Retrieve the currently active application."""
         try:
-            # Get the active window from the desktop
-            desktop = Desktop(backend="uia")
-            active_window = desktop.window(topmost=True, active=True)
-            
-            # Ensure the window exists and is valid
-            if not active_window.exists():
-                logger.error("No active window found.")
+            # Get the foreground window handle using Windows API
+            hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                logger.error("No foreground window found.")
                 return "Unknown Application"
-            
-            # Retrieve the process ID directly
-            pid = active_window.process_id
-            logger.debug(f"Active window process ID: {pid}")
-            
-            # Connect to the application using the process ID
-            app = Application(backend="uia").connect(process=pid)
+
+            # Connect to the application using the window handle
+            app = Application(backend="uia").connect(handle=hwnd)
+            # Get the top window's title
             app_name = app.top_window().window_text() or "Unknown Application"
             logger.info(f"Active application: {app_name}")
             return app_name
-            
+
         except Exception as e:
             logger.error(f"Error getting active app: {str(e)}")
             return "Unknown Application"  # Fallback
